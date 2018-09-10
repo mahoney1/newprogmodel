@@ -1,7 +1,7 @@
 {
-    "name": "mattsamp",
+    "name": "my sample contract",
     "version": "0.0.1",
-    "description": "Smart Contract",
+    "description": "Smart Contract Sample - mycontract",
     "engines": {
         "node": ">=8",
         "npm": ">=5"
