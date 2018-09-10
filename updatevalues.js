@@ -7,11 +7,11 @@ const shim = require('fabric-shim');
 
 const query = require('./query.js');
 
-// SDK Library to asset with writing the logic
+// need to require the fabric-contract-api Classes
 const { Contract } = require('fabric-contract-api');
  
 /**
- * Support the Updating of values within the SmartContract.
+ * Support the Updating of values within the SmartContract - constructor is within the defined NS
  */
 
 class UpdateValuesContract extends Contract {
@@ -20,36 +20,26 @@ class UpdateValuesContract extends Contract {
         super('org.mynamespace.updates');
     }
 
+     Init(stub) {
 
-     async Init(stub) {
-        let ret = stub.getFunctionAndParameters();
-        let params = ret.params;
-        if (params.length != 2) {
-            return shim.error("Incorrect number of arguments. Expecting 2");
-        }
-        let A = params[0];
-        let B = params[1];
-
-        try {
-            await stub.putState(A, Buffer.from(B));
-            return shim.success(Buffer.from("success"));
-        } catch (e) {
-            return shim.error(e);
-        }
-     } 
+	    console.info('=========== Instantiated Sample chaincode ===========');
+    //        await stub.putState('dummyKey', Buffer.from('dummyValue'))
+            return shim.success();
+     }
 
     async Invoke(stub) {
         let ret = stub.getFunctionAndParameters();
         console.info(ret);
 
-        let method = this[ret.fcn];
+        let method = this[ret.fcn] ;
         if (!method) {
           console.error('no function of name:' + ret.fcn + ' found');
           throw new Error('Received unknown function ' + ret.fcn + ' invocation');
         }
         try {
-          console.log('Function called is : ' + ret.fcn + ' and was found');
+          console.log('FQ Function called is : ' + ret.fcn  + ' was found with params ' + ret.params);
           let payload = await method(stub, ret.params);
+          console.log('payload is ' + payload);
           return shim.success(payload);
         } catch (err) {
           console.log(err);
@@ -57,6 +47,16 @@ class UpdateValuesContract extends Contract {
         }
     }
     
+     async InitContract(ctx, args) {
+        let A = args[0]; 
+        let B = args[1]; 
+
+	       console.info('=========== Invoked InitContract in chaincode ===========');
+        await ctx.putState(A, Buffer.from(B));
+
+        return Buffer.from(B.toString());
+     } 
+
     async transactionA(ctx, args) {
        
         console.log("now inside transaction A function");
@@ -64,7 +64,7 @@ class UpdateValuesContract extends Contract {
         let newValue = args[1]; 
         // retrieve existing chaincode states
         let oldValue = await ctx.getState(key);
-        console.log("called transaction A key is " + key + "value is " + oldValue); 
+        console.log("called transaction A key with new value" + key + " oldvalue is " + oldValue); 
         await ctx.putState(key, Buffer.from(newValue));
  
         return Buffer.from(newValue.toString());
@@ -72,18 +72,19 @@ class UpdateValuesContract extends Contract {
  
     async transactionB(ctx, args) {
 
-        console.log("now inside transaction A function");
+        console.log("now inside transaction B function");
         let key = args[0]; 
         let newValue = args[1]; 
         // retrieve existing chaincode states
         let oldValue = await ctx.getState(key);
-        console.log("called transaction B key is " + key + "value is " + oldValue); 
+        console.log("called transaction B key with new value " + key + " oldvalue is " + oldValue); 
  
         await ctx.putState(key, Buffer.from(newValue));
  
         return Buffer.from(newValue.toString());
     }
  
+    // Helper functions - can go into a Utils class
     async getValues(ctx, args) {
         if (args.length != 1) {
             return shim.error("Incorrect number of arguments. Expecting 1");
@@ -95,8 +96,10 @@ class UpdateValuesContract extends Contract {
         }
     }
 
-
-   async getHistoryQ(ctx, args) {
+// query based history
+   async getHistoryQuery(ctx, args) {
+    
+      let queryString = args[0];
       //console.log(' getHistory queryString:\n' + queryString);
       console.log("getHistory function:  ");
       let queryString = args[0];
@@ -108,9 +111,11 @@ class UpdateValuesContract extends Contract {
       return Buffer.from(JSON.stringify(results));
    }
 
-    async keyHistory(stub, key) {
+ // simple history
+    async keyHistory(ctx, args) {
     	console.info('inside history function FYI');
-    	const iterator = await stub.getHistoryForKey('A1');
+     let key = args[0];
+    	const iterator = await stub.getHistoryForKey(key);
     	let results = [];
     	let res = {done : false};
     	while (!res.done) {
@@ -129,7 +134,7 @@ class UpdateValuesContract extends Contract {
             	  catch (err) {
             	  }
                 }
-        console.log("results are " + results);
+        console.log("Results are as follows: " + results);
         //return results;
         return 0;
         } // while
