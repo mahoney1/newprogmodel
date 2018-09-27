@@ -114,7 +114,7 @@ class UpdateValuesContract extends Contract {
  // simple history
     async keyHistory(ctx, args) {
     	console.info('inside history function FYI');
-     let key = args[0];
+        let key = args[0];
     	const iterator = await stub.getHistoryForKey(key);
     	let results = [];
     	let res = {done : false};
